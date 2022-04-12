@@ -78,8 +78,115 @@ pxelinux.0는 네트워크 부트로더로 리눅스의 grub이나 lilo와 같�
 
 <br>
 
-### <br> 1. DHCP 설치/설정/실행법 </br>
+### <b> 1. 패키지 설치</b>
 
+***
 ```
-yum -y install dhcp
+yum -y install dhcp 
+yum -y install syslinux
+yum -y install tftp-server
+yum -y install xinetd
+yum -y install vsftpd
 
+# syslinux는 부팅 메뉴 구성을 위한 파일과 부트로더 파일을 제공해준다.
+# tftp를 통해 커널 이미지 파일과 syslinux가 제공해주는 부팅 관련 파일을 전송해준다.
+# tftp는 xinet 데몬에 의해서 동작하는 데몬이기 때문에 설치.
+# vsftp를 통해 운영체제 설치 시 필요한 파일을 전송한다.
+```
+TFTP 서버 설정.
+***
+`vi /etc/xinetd.d/tftp`에서 14번 라인 disable = no로 변경해주기.
+
+<br>
+
+### <b> 2. CD 마운트</b>
+***
+```
+mount -t iso9660 /dev/cdrom /mnt
+
+# 리눅스 ISO 파일을 /mnt에 마운트 해준다. (iso9660 형식으로 마운트, /mnt = CD-ROM 마운트 포인트)
+# 여기서 iso9660 파일 시스템 타입으로 마운트 해주는 이유는 CD-ROM의 공식적인 파일시스템 타입이 iso9660이기 때문이다. 
+# CD-ROM에 마운트시에는 반드시 iso9660 타입을 사용을 해줘야한다.
+```
+### <b> 3. CD 이미지 복사</b>
+***
+```
+mkdir -p /var/ftp/myCentos
+cp -r /mny/* /var/ftp/myCentos &
+
+# CD 이미지 파일을 복사하기 위해 myCentos 디렉터리 생성 후 싹 다 복사
+# 이 작업은 로컬저장소를 만드는 과정으로 네트워크를 통해 부팅을 한 시스템(PXE)는 운영체제 설치에 필요한 파일을 vsftp를 통해 다운받는다.
+```
+
+### <b> 4. SYSLINUX 패키지 복사</b>
+***
+```
+cd /usr/share/syslinux
+cp menu.c32 /var/lib/tftpboot
+cp pxelinux.0 /var/lib/tftpboot
+```
+
+### <b> 5. 커널 이미지 파일 복사</b>
+***
+```
+mkdir -p /var/lib/tftpboot/centos
+cp /var/ftp/myCentos/images/pxeboot/{vmlinuz,initrd.img} /var/lib/tftpboot/centos/
+```
+
+### <b> 6. 부팅 메뉴 구성하기</b>
+***
+```
+mkdir /var/lib/tftpboot/pxelinux.cfg
+vi /var/libe/tftpboot/pxelinux.cfg/default
+
+default menu.c32
+prompt 0
+timeout 300
+ontimeout local
+
+LABEL local
+        MENU LABEL ^0) Boot Local hard Disk
+        localboot 0
+LABEL CentOS 7
+        MENU LABEL ^1) CentOS 7 Install (VSFTP)
+        KERNEL /centos/vmlinuz
+        APPEND initrd=/centos/initrd.img repo=ftp://192.168.10.100/myCentos
+LABEL CentOS 7
+        MENU LABEL ^2) CentOS 7 Install (Mirror)
+        KERNEL /centos/vmlinuz
+        APPEND initrd=/centos/initrd.img repo=http://mirror.kakao.com/centos/7.9.2009/isos/x86_64/
+
+# 0번 메뉴 -> localboot 0 하드디스크부팅
+# 1번 메뉴 -> 커널이미지 파일(vmlinux,initrd.img)을 실행후 설치에 필요한 데이터를 FTP서버에서 다운로드합니다.
+# 2번 메뉴 -> 커널 이미지 파일(vmlinux,initrd.img)을 실행후 설치에 필요한 데이터를 Kakao Mirror 서버에서 다운로드합니다.
+# ftp://xxx.xxx.xxx.xxx/centos7 부분에는 현재 자신의 IP를 입력합니다. [ifconfig 명령어로 확인가능]
+```
+
+### <b> 7. DHCP 서버 구성하기 </b>
+***
+```
+vi /etc/dhcp/dhcpd.conf
+
+subnet 192.168.10.0 netmask 255.255.255.0 { #아이피와 서브넷 지정 옵션
+        range 192.168.10.120 192.168.10.200; #시작 IP와 끝 IP 설정
+        option routers 192.168.10.2; #게이트웨이 설정 옵션
+        option broadcast-address 192.168.10.255; #브로드캐스트 설정
+        option subnet-mask 255.255.255.0; #넷마스크 설정 옵션
+        option domain-name-servers 8.8.8.8; #네임서버 설정
+        default-lease-time 3000; #임대시간(s)
+        max-lease-time 6000; #최대 임대시간(s)
+        filename "pxelinux.0"; #부팅 파일 이름(syslinux)
+}
+```
+### <b> 8. 서비스 실행 </b>
+***
+```
+systemctl start vsftpd xinetd tftp dhcpd
+systemctl stop firewalld
+systemctl disable firewalld
+```
+
+### <b> 9.동작 확인 </b>
+***
+OS를 넣지 않은 PXE_Clinet를 실행. 이때 네트워크는 bridge 형식으로 진행해준다.   
+OS를 넣지 않음에도 실행되는 모습을 확인할 수 있음.   
