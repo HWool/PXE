@@ -49,8 +49,8 @@ pxelinux.0는 네트워크 부트로더로 리눅스의 grub이나 lilo와 같�
 ***
 <br>
 
-<img src=./image/pxe동작.png>   
-<img src=./image/pxe동작2.png>
+<img src=./image/pxe동작.PNG>   
+<img src=./image/pxe동작2.PNG>
 
 기본 동작은 위와 같은 구성으로 되어 있다. PXE는 기본적으로 클라이언트이기 때문에 서버가 필요하고, 서버는 DHCP 서버와 tftp 서버, 초기 램디스크 이미지(initrd.img)와 커널 이미지(vmlinuz)가 있으면 된다.
 
@@ -206,7 +206,7 @@ systemctl disable firewalld
 
 <br>
 
-<img src=./image/pxetest.png>   
+<img src=./image/pxetest.PNG>   
 
 memory 2GB      
 CPU 2   
@@ -219,12 +219,12 @@ Network Bridge
 
 <br>
 
-<img src=./image/pxe.png>
+<img src=./image/pxe.PNG>
 
 실행을 해보면 OS를 넣지 않음에도 실행되는 모습을 확인할 수 있고 위 사진처럼 부팅 메뉴를 확인할 수 있다.   
 여기는 직접 눌러줘야 한다. 두 번째 거 클릭 
 
-<img src=./image/pxetest1.png>
+<img src=./image/pxetest1.PNG>
 
 설치가 잘된다.
 
@@ -341,8 +341,8 @@ kexec-tools
 
 pxe 동작 확인 했던 과정까지는 똑같이 진행
 
-<img src=./image/pxetest2.png>   
-<img src=./image/pxetest3.png>
+<img src=./image/pxetest2.PNG>   
+<img src=./image/pxetest3.PNG>
 
 위 사진들 처럼 자동으로 설정된다.
 
