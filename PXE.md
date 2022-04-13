@@ -46,10 +46,11 @@ pxelinux.0는 네트워크 부트로더로 리눅스의 grub이나 lilo와 같�
 <br>
 
 ## PXE의 동작원리
-
+***
 <br>
 
-<img src=./image/pxe.img>   
+<img src=./image/pxe동작.png>   
+<img src=./image/pxe동작2.png>
 
 기본 동작은 위와 같은 구성으로 되어 있다. PXE는 기본적으로 클라이언트이기 때문에 서버가 필요하고, 서버는 DHCP 서버와 tftp 서버, 초기 램디스크 이미지(initrd.img)와 커널 이미지(vmlinuz)가 있으면 된다.
 
@@ -205,7 +206,7 @@ systemctl disable firewalld
 
 <br>
 
-<img src=./image/pxetest.png> 
+<img src=./image/pxetest.png>   
 
 memory 2GB      
 CPU 2   
