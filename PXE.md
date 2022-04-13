@@ -71,12 +71,23 @@ pxelinux.0는 네트워크 부트로더로 리눅스의 grub이나 lilo와 같�
 
 리눅스 설치파일은 자신이 nfs, ftp 서버를 사용하여도 되지만 이미 공개되어 있는 저장소(예를 들어 ftp.daum.net) 같은 곳을 지정해서 사용해도 된다. 학교나 회사등 외부 네트워크로 접속하기 힘든 경우는 자신이 nfs 나 ftp 서버를 구축하고 설치파일을 자신의 서버에서 배포해야한다.
 
-
+***
 <br>
 
 ## 실습
-
+***
 <br>
+
+
+
+### <b> 0. 실습 환경 및 흐름 </b>
+***
+vmware 툴을 이용. pxeserver 1대, pxeclient 1대 총 2대를 사용.   
+pxeserver 설정을 할 때 외부 네트워크에서 접속하기 위해서 네트워크 환경을 nat로 설정.   
+이후 설정이 끝난 후 bridge로 변경해주고 pxeclient 실행.  
+( 이때, pxeclient에는 OS를 넣어주면 안됨. ISO Image를 삽입하지 않고 실행시켜줘야 한다. )   
+자동으로 설치가 되는 것을 볼 수 있었음
+
 
 ### <b> 1. 패키지 설치</b>
 
@@ -95,7 +106,8 @@ yum -y install vsftpd
 ```
 TFTP 서버 설정.
 ***
-`vi /etc/xinetd.d/tftp`에서 14번 라인 disable = no로 변경해주기.
+`vi /etc/xinetd.d/tftp`에서 14번 라인 disable = no로 변경해주기.   
+기본적으로 사용이 비활성화 되어 있기 때문에 no로 변경해주는 것.
 
 <br>
 
@@ -150,14 +162,15 @@ LABEL local
 LABEL CentOS 7
         MENU LABEL ^1) CentOS 7 Install (VSFTP)
         KERNEL /centos/vmlinuz
-        APPEND initrd=/centos/initrd.img repo=ftp://192.168.10.100/myCentos
+        APPEND initrd=/centos/initrd.img repo=ftp://192.168.10.100/myCentos ks=ftp://192.168.10.100/myCentos/centos7.cfg
 LABEL CentOS 7
         MENU LABEL ^2) CentOS 7 Install (Mirror)
         KERNEL /centos/vmlinuz
-        APPEND initrd=/centos/initrd.img repo=http://mirror.kakao.com/centos/7.9.2009/isos/x86_64/
+        APPEND initrd=/centos/initrd.img repo=http://mirror.kakao.com/centos/7.9.2009/isos/x86_64/ 
 
 # 0번 메뉴 -> localboot 0 하드디스크부팅
-# 1번 메뉴 -> 커널이미지 파일(vmlinux,initrd.img)을 실행후 설치에 필요한 데이터를 FTP서버에서 다운로드합니다.
+# 1번 메뉴 -> 커널이미지 파일(vmlinux,initrd.img)을 실행후 설치에 필요한 데이터를 FTP서버에서 다운로드합니다. kickstart 파일을 지정.
+#             ks파일은 자신이 설정한 이름을 넣어야 함.
 # 2번 메뉴 -> 커널 이미지 파일(vmlinux,initrd.img)을 실행후 설치에 필요한 데이터를 Kakao Mirror 서버에서 다운로드합니다.
 # ftp://xxx.xxx.xxx.xxx/centos7 부분에는 현재 자신의 IP를 입력합니다. [ifconfig 명령어로 확인가능]
 ```
@@ -188,5 +201,153 @@ systemctl disable firewalld
 
 ### <b> 9.동작 확인 </b>
 ***
-OS를 넣지 않은 PXE_Clinet를 실행. 이때 네트워크는 bridge 형식으로 진행해준다.   
-OS를 넣지 않음에도 실행되는 모습을 확인할 수 있음.   
+### test vm 생성
+
+<br>
+
+<img src=./image/pxetest.png>   
+
+memory 2GB      
+CPU 2   
+Hard 30GB   
+Network Bridge
+***
+<br>
+
+### 실행
+
+<br>
+
+<img src=./image/pxe.png>
+
+실행을 해보면 OS를 넣지 않음에도 실행되는 모습을 확인할 수 있고 위 사진처럼 부팅 메뉴를 확인할 수 있다.   
+여기는 직접 눌러줘야 한다. 두 번째 거 클릭 
+
+<img src=./image/pxetest1.png>
+
+설치가 잘된다.
+
+<img src=./image/pxe1.png>
+
+위 화면까지 나오면 성공이다.
+
+<br>
+
+### <b> 10. kickstart 설정 </b>   
+***   
+
+
+Kickstart를 설정하지 않을거면 9번까지만 진행.
+
+
+### <b> 10-1 ks 파일 생성 </b>
+***
+```bash
+touch /var/ftp/myCentos/centos7.cfg
+cp  /root/anaconda-ks.cfg /var/ftp/myCentos/centos7.cfg
+chmod 755 /var/ftp/myCentos/centos7.cfg
+
+# 현재 시스템의 ks 파일을 복사한 후 수정할 거임. (따로 만들어도 된다.)
+# 설치 시에 Client가 사용하기 때문에 권한 설정을 변경해줘야함.
+```
+
+
+### <b> 10-2 root 비밀번호 설정 </b>
+***
+``` 
+openssl passwd -1 1234Qwer
+```
+> output
+```
+$1$0PsIsq4T$SBbbMNaoU4XMo2lbYeJfe.
+```
+그냥 1234Qwer 그대로 써도 되지만, 보안상 암호화되어 있는 것을 쓰도록 하자
+
+<br>
+
+### <b>10-3 ks 파일 설정 </b>
+***
+```bash
+vi /var/ftp/myCentos/centos7.cfg
+
+# 시스템에게 기존 시스템을 업그레이드 하지 않고 새로 설치. (Default)
+# upgrade도 있음.
+install
+
+#version=DEVEL
+# System authorization information
+auth --enableshadow --passalgo=sha512
+
+# Use FTP installation 
+# ftp 외에 cdrom, nfs, harddrive, url(http,https) 중 하나 선택해서 사용할 수 있다.
+url --url="ftp://192.168.10.100/myCentos/"
+
+# Use graphical install
+# Kickstart 설치 모드는 그래픽 모드(Default)와 text 모드가 있다.
+# text 모드는 text로 써주면 된다. 
+graphical
+
+
+# Run the Setup Agent on first boot
+firstboot --enable
+ignoredisk --only-use=sda
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts='us','kr'
+
+# System language
+lang en_US.UTF-8
+
+# Network information
+# DHCP를 통해 IP를 할당 받을 거기 때문에 DHCP로 설정
+network  --bootproto=dhcp --device=ens32 --hostname=pxecleint --activate
+
+
+
+# Root password
+rootpw --iscrypted $1$0PsIsq4T$SBbbMNaoU4XMo2lbYeJfe.
+# System services
+services --disabled="chronyd"
+# System timezone
+timezone Asia/Seoul --isUtc --nontp
+user --name=user --password=$1$0PsIsq4T$SBbbMNaoU4XMo2lbYeJfe. --iscrypted --gecos="user"
+
+# System bootloader configuration
+bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=sda
+autopart --type=lvm
+# Partition clearing information
+clearpart --none --initlabel
+
+
+# 설정 다 하면 재부팅
+reboot                                  
+
+# 패키지를 설치할 수 있다. net-tools나 등등
+%packages
+@^minimal
+@core
+kexec-tools
+
+%end
+```
+참조 : [RedHat](https://access.redhat.com/documentation/ko-kr/red_hat_enterprise_linux/6/html/installation_guide/s1-kickstart2-options) 공식문서
+
+
+<br>
+
+## 동작 확인
+***
+
+pxe 동작 확인 했던 과정까지는 똑같이 진행
+
+<img src=./image/pxetest2.png>   
+<img src=./image/pxetest3.png>
+
+위 사진들 처럼 자동으로 설정된다.
+
+<img src=./image/pxetest4.png>
+
+설정을 다하고 재부팅도 자동으로 되는데,
+설정했던 root나 user로 잘 들어갈 수 있었다.
+
+
