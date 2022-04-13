@@ -205,7 +205,7 @@ systemctl disable firewalld
 
 <br>
 
-<img src=./image/pxetest.png>   
+<img src=./image/pxetest.png> 
 
 memory 2GB      
 CPU 2   
